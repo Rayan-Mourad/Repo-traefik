@@ -1,43 +1,43 @@
-services:
-  app:
-    build: .
-    container_name: app
-    ports:
+services:                       #Ce bloc définit les services à exécuter dans des conteneurs Docker.
+  app:                          #Déclare le service app, qui représente ton application Node.js.
+    build: .                    #Indique que Docker doit construire l'image à partir du Dockerfile situé dans le dossier actuel (.).
+    container_name: app          #Définit le nom du conteneur pour faciliter son identification (app).
+    ports:                       #Expose le port 3000 à l'extérieur du conteneur.
       - "3000:3000"
-    volumes:
+    volumes:                     #Exclut node_modules du partage, pour éviter les conflits entre dépendances de l’hôte et celles du conteneur.
       - .:/app
       - /app/node_modules
-    environment:
+    environment:                 #Définit une variable d’environnement -> tourne lappli en mode prod
       - NODE_ENV=production
-    command: ["node", "index.js"]
-    labels:
+    command: ["node", "index.js"]  #Spécifie la commande d'exécution du conteneur -> pour démarrer lappli
+    labels:                        #Ces labels permettent à Traefik de gérer le routage :
       - "traefik.enable=true"
       - "traefik.http.routers.app.rule=Host(`rayan.com`)"
       - "traefik.http.routers.app.entrypoints=web"
       - "traefik.http.services.app.loadbalancer.server.port=3000"
-    networks:
+    networks:                     #Associe ce service au réseau
       - traefik_network
 
-  traefik:
-    image: traefik:v2.9
-    container_name: traefik
-    restart: always
-    ports:
+  traefik:                        #Déclare le service Traefik, qui va gérer la redirection des requêtes vers l’application
+    image: traefik:v2.9           #Utilise l’image officielle de Traefik en version 2.9
+    container_name: traefik       #Définit le nom du conteneur comme traefik
+    restart: always               #Redémarre toujours le conteneur en cas d’échec.
+    ports:                        #Expose le port 80 pour recevoir les requêtes HTTP et les rediriger vers app 
       - "80:80"     # HTTP seulement
       - "8080:8080" # Dashboard de Traefik
-    volumes:
+    volumes:                      #Permet à Traefik de communiquer avec Docker et de détecter automatiquement les services avec les bons labels.
       - /var/run/docker.sock:/var/run/docker.sock
-    command:
+    command:                      #Active le tableau de bord ,Active l'intégration avec Docker , Définit le point d’entrée web sur le port 80.
       - "--api.insecure=true"
       - "--providers.docker=true"
       - "--entrypoints.web.address=:80"
-    labels:
+    labels:                       #Accès au tableau de bord via traefik.rayan.com
       - "traefik.http.routers.traefik.rule=Host(`traefik.rayan.com`)"
       - "traefik.http.routers.traefik.service=api@internal"
-    networks:
+    networks:                     #Associe traefik au réseau traefik_network pour qu’il puisse gérer les requêtes des services.
       - traefik_network
 
-networks:
+networks:                        #definition du reseau
   traefik_network:
     driver: bridge
 
