@@ -1,0 +1,43 @@
+services:
+  app:
+    build: .
+    container_name: app
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=production
+    command: ["node", "index.js"]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.app.rule=Host(`rayan.com`)"
+      - "traefik.http.routers.app.entrypoints=web"
+      - "traefik.http.services.app.loadbalancer.server.port=3000"
+    networks:
+      - traefik_network
+
+  traefik:
+    image: traefik:v2.9
+    container_name: traefik
+    restart: always
+    ports:
+      - "80:80"     # HTTP seulement
+      - "8080:8080" # Dashboard de Traefik
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--entrypoints.web.address=:80"
+    labels:
+      - "traefik.http.routers.traefik.rule=Host(`traefik.rayan.com`)"
+      - "traefik.http.routers.traefik.service=api@internal"
+    networks:
+      - traefik_network
+
+networks:
+  traefik_network:
+    driver: bridge
+
